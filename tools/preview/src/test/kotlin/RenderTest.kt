@@ -1,7 +1,7 @@
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.View
-import androidx.test.core.app.ApplicationProvider
+import org.robolectric.RuntimeEnvironment
 import com.dowpaper.android.core.Catalog
 import com.dowpaper.android.core.Prefs
 import com.dowpaper.android.ui.MainActivity
@@ -19,7 +19,7 @@ import java.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(sdk = [33], qualifiers = "w411dp-h891dp-xxhdpi")
 class RenderTest {
     private val out = File(System.getProperty("preview.out") ?: "screens").also { it.mkdirs() }
 
@@ -29,7 +29,8 @@ class RenderTest {
 
     @Test
     fun renderScenes() {
-        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        if (System.getProperty("preview.skipScenes") == "true") return
+        val ctx = RuntimeEnvironment.getApplication()
         val prefs = Prefs(ctx)
         val w = 1080; val h = 2340
         for (def in Catalog.all) {
@@ -59,7 +60,7 @@ class RenderTest {
 
     private fun advance(ms: Long) {
         var left = ms
-        while (left > 0) { ShadowLooper.idleMainLooper(16, java.util.concurrent.TimeUnit.MILLISECONDS); left -= 16 }
+        while (left > 0) { ShadowLooper.idleMainLooper(50, java.util.concurrent.TimeUnit.MILLISECONDS); left -= 50 }
     }
 
     private fun findView(v: View, pred: (View) -> Boolean): View? {
@@ -70,6 +71,8 @@ class RenderTest {
 
     @Test
     fun renderScreens() {
+        org.robolectric.shadows.ShadowChoreographer.setPaused(true)
+        org.robolectric.shadows.ShadowChoreographer.setFrameDelay(Duration.ofMillis(16))
         val ctl = Robolectric.buildActivity(MainActivity::class.java).setup()
         val act = ctl.get()
         advance(300); shot(act, "ui_splash")

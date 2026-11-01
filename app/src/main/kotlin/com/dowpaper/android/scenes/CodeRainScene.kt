@@ -21,7 +21,7 @@ class CodeRainScene(ctx: Context) : Scene(ctx) {
         cs = dp(17f) / sqrt(density.coerceIn(0.3f, 2.5f))
         cols = (width / cs).toInt() + 1
         rows = (height / cs).toInt() + 2
-        head = FloatArray(cols) { rf(-rows.toFloat(), rows.toFloat()) }
+        head = FloatArray(cols) { rf(0f, rows * 1.3f) }
         spd = FloatArray(cols) { rf(5f, 15f) }
         len = IntArray(cols) { rf(8f, 30f).toInt() }
         chars = Array(cols) { CharArray(rows) { glyphs[rnd.nextInt(glyphs.size)] } }
@@ -38,7 +38,7 @@ class CodeRainScene(ctx: Context) : Scene(ctx) {
         for (col in 0 until cols) {
             head[col] += spd[col] * dt
             if (head[col] - len[col] > rows) {
-                head[col] = -rf(0f, rows * 0.6f); spd[col] = rf(5f, 15f); len[col] = rf(8f, 30f).toInt()
+                head[col] = -rf(0f, rows * 0.25f); spd[col] = rf(6f, 16f); len[col] = rf(10f, 32f).toInt()
             }
             if (rnd.nextFloat() < 0.12f) chars[col][rnd.nextInt(rows)] = glyphs[rnd.nextInt(glyphs.size)]
             val x = col * cs + cs / 2 + shift
@@ -49,7 +49,7 @@ class CodeRainScene(ctx: Context) : Scene(ctx) {
                 val r = hr - k
                 if (r < 0 || r >= rows) continue
                 val a = 1f - k.toFloat() / l
-                p.color = if (k == 0) headCol else Col.alpha(base, a * a * 0.95f)
+                p.color = if (k == 0) headCol else Col.alpha(Col.lighten(base, 0.15f), 0.15f + a * 0.85f)
                 c.drawText(chars[col], r, 1, x, r * cs + cs * 0.85f, p)
             }
         }

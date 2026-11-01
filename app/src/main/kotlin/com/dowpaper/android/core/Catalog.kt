@@ -28,8 +28,8 @@ object Catalog {
 
     val all: List<SceneDef> = listOf(
         SceneDef("aurora", "Aurora", "Cortinas de luz polar sobre montañas", CAT_SPACE, 0) { AuroraScene(it) },
-        SceneDef("fluid", "Fluido", "Gradientes líquidos que respiran", CAT_ABSTRACT, 3) { FluidScene(it) },
-        SceneDef("cosmos", "Cosmos", "Nebulosas, estrellas y fugaces", CAT_SPACE, 6) { CosmosScene(it) },
+        SceneDef("fluid", "Fluido", "Gradientes líquidos que respiran", CAT_ABSTRACT, 1) { FluidScene(it) },
+        SceneDef("cosmos", "Cosmos", "Nebulosas, estrellas y fugaces", CAT_SPACE, 3) { CosmosScene(it) },
         SceneDef("waves", "Olas", "Un mar infinito al atardecer", CAT_NATURE, 1) { WavesScene(it) },
         SceneDef("bokeh", "Bokeh", "Luces suaves fuera de foco", CAT_ABSTRACT, 8) { BokehScene(it) },
         SceneDef("warp", "Hiperespacio", "Viaja a la velocidad de la luz", CAT_SPACE, 2) { WarpScene(it) },
@@ -39,7 +39,7 @@ object Catalog {
         SceneDef("code", "Código", "Lluvia digital de glifos", CAT_TECH, 5) { CodeRainScene(it) },
         SceneDef("snow", "Nevada", "Copos tranquilos en la noche", CAT_NATURE, 2) { SnowScene(it) },
         SceneDef("rain", "Lluvia", "Tormenta nocturna sobre la ciudad", CAT_NATURE, 3) { RainScene(it) },
-        SceneDef("photo", "Tu foto", "Tu imagen con zoom vivo y efectos", CAT_PERSONAL, 6, Kind.PHOTO) { PhotoScene(it) },
+        SceneDef("photo", "Tu foto", "Tu imagen con zoom vivo y efectos", CAT_PERSONAL, 3, Kind.PHOTO) { PhotoScene(it) },
         SceneDef("video", "Tu video", "Cualquier video como fondo en bucle", CAT_PERSONAL, 3, Kind.VIDEO) { PhotoScene(it).also { s -> s.videoFrame = true } }
     )
 

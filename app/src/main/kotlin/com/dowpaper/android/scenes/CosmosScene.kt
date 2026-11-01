@@ -32,8 +32,8 @@ class CosmosScene(ctx: Context) : Scene(ctx) {
         val big = max(width, height)
         for (i in 0 until 5) {
             val c = color(i)
-            val r = big * rf(0.3f, 0.55f)
-            val sh = RadialGradient(0f, 0f, r, intArrayOf(Col.alpha(c, 0.38f), Col.alpha(c, 0.12f), Col.alpha(c, 0f)),
+            val r = big * rf(0.22f, 0.4f)
+            val sh = RadialGradient(0f, 0f, r, intArrayOf(Col.alpha(c, 0.42f), Col.alpha(c, 0.1f), Col.alpha(c, 0f)),
                 floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
             clouds += Cloud(Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = sh; xfermode = SCREEN }, sh, Matrix(), r, rf(0f, 50f))
         }

@@ -24,8 +24,11 @@ KCP="$KOTLIN_LIB/kotlin-compiler-embeddable-$KVER.jar:$STDLIB:$KOTLIN_LIB/kotlin
 rm -rf "$OUT"; mkdir -p "$OUT"/{res,gen,classes,dex}
 
 echo "▸ [1/6] Recursos (aapt2)"
+# El manifest no declara 'package' (compatibilidad con AGP 8); se inyecta para aapt2.
+sed 's|<manifest xmlns:android="http://schemas.android.com/apk/res/android">|<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.dowpaper.android">|' \
+  "$SRC/AndroidManifest.xml" > "$OUT/AndroidManifest.xml"
 aapt2 compile --dir "$SRC/res" -o "$OUT/res/res.zip"
-aapt2 link -I "$RES_JAR" --manifest "$SRC/AndroidManifest.xml" \
+aapt2 link -I "$RES_JAR" --manifest "$OUT/AndroidManifest.xml" \
   --min-sdk-version 26 --target-sdk-version 35 \
   --version-code "$VERSION_CODE" --version-name "$VERSION_NAME" \
   --java "$OUT/gen" -o "$OUT/base.apk" "$OUT/res/res.zip" --auto-add-overlay

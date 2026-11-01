@@ -17,12 +17,12 @@ class FluidScene(ctx: Context) : Scene(ctx) {
 
     override fun setup() {
         blobs.clear()
-        val n = min(10, max(3, count(6)))
+        val n = min(9, max(3, count(5)))
         val big = max(width, height)
         for (i in 0 until n) {
             val c = color(i)
-            val r = big * rf(0.38f, 0.62f)
-            val sh = RadialGradient(0f, 0f, r, intArrayOf(Col.alpha(c, 0.95f), Col.alpha(c, 0.45f), Col.alpha(c, 0f)),
+            val r = big * rf(0.32f, 0.52f)
+            val sh = RadialGradient(0f, 0f, r, intArrayOf(Col.alpha(c, 0.62f), Col.alpha(c, 0.26f), Col.alpha(c, 0f)),
                 floatArrayOf(0f, 0.45f, 1f), Shader.TileMode.CLAMP)
             val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = sh; xfermode = SCREEN }
             blobs += Blob(p, sh, Matrix(), rf(0f, 100f), rf(0f, 100f), rf(0f, 6.28f))
