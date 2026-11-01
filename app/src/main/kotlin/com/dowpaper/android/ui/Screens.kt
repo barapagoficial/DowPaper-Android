@@ -477,7 +477,7 @@ class DetailScreen(act: MainActivity, private val def: SceneDef) : Screen(act) {
     }
 
     override fun onPicked(video: Boolean, uri: Uri) {
-        if (video) { prefs.videoError = null; prefs.videoUri = uri.toString(); updateVideoNote() } else { prefs.photoUri = uri.toString(); BitmapCache.invalidate() }
+        if (video) { prefs.videoError = null; prefs.videoUri = uri.toString(); updateVideoNote() } else { BitmapCache.invalidate(); prefs.photoUri = uri.toString() }
         for (i in 0 until panel.childCount) {
             val v = panel.getChildAt(i)
             if (v is GhostButton) v.label.text = if (video) "Cambiar video" else "Cambiar foto"

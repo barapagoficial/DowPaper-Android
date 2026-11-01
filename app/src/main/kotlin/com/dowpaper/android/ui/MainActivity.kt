@@ -67,6 +67,7 @@ class MainActivity : Activity() {
         }
         setContentView(root)
 
+        Thread { MediaImport.migrate(applicationContext, prefs) }.start()
         home = HomeScreen(this)
         push(home, false)
         if (savedInstanceState == null) showSplash() else home.entrance()
@@ -227,7 +228,15 @@ class MainActivity : Activity() {
                 val uri: Uri = data?.data ?: return
                 if (resultCode != RESULT_OK) return
                 try { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: Exception) {}
-                stack.lastOrNull()?.onPicked(requestCode == REQ_VIDEO, uri)
+                val video = requestCode == REQ_VIDEO
+                toast(if (video) "Importando video…" else "Importando foto…", if (video) Ic.VIDEO else Ic.IMAGE)
+                Thread {
+                    val local = MediaImport.import(applicationContext, uri, video)
+                    runOnUiThread {
+                        if (local == null) toast(if (video) "Video muy grande: se usará desde la galería" else "No se pudo copiar la foto; se usará el original", Ic.EYE_OFF)
+                        stack.lastOrNull()?.onPicked(video, local ?: uri)
+                    }
+                }.start()
             }
         }
     }

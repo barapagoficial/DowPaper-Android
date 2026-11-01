@@ -27,12 +27,20 @@ class PhotoScene(ctx: Context) : Scene(ctx) {
     private val sub = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val iconP = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
     private var placeholder: Scene? = null
+    @Volatile private var loaded: Bitmap? = null
+    @Volatile private var loadedKey: String? = null
+    @Volatile private var loading = false
+    @Volatile private var failedAt = 0L
+    private var key = ""
     private val shade = Paint().apply { color = Col.alpha(Color.BLACK, 0.25f) }
     private val ip = Path()
 
     override fun setup() {
         val w = width.toInt(); val h = height.toInt()
-        bmp = BitmapCache.get(ctx, uri, videoFrame, w, h)
+        key = "$uri|$videoFrame|$w|$h"
+        bmp = BitmapCache.peek(uri, videoFrame, w, h)
+        failedAt = 0L
+        if (bmp == null && uri != null) requestLoad()
         fx = when (effect) {
             "bokeh" -> BokehScene(ctx); "snow" -> SnowScene(ctx); "rain" -> RainScene(ctx)
             "fireflies" -> FirefliesScene(ctx); "stars" -> CosmosScene(ctx); else -> null
@@ -41,17 +49,32 @@ class PhotoScene(ctx: Context) : Scene(ctx) {
             s.configure(palette, 1f, density)
             s.resize(w, h)
         }
-        if (bmp == null) {
-            placeholder = FluidScene(ctx).also { it.configure(palette, 0.6f, 1f); it.resize(w, h) }
-        } else placeholder = null
+        placeholder = FluidScene(ctx).also { it.configure(palette, 0.6f, 1f); it.resize(w, h) }
         dimP.color = Col.alpha(Color.BLACK, dim)
         textP.textSize = dp(22f); textP.isFakeBoldText = true
         sub.textSize = dp(14f); sub.color = Col.alpha(Color.WHITE, 0.7f)
         iconP.strokeWidth = dp(2.5f); iconP.color = Color.WHITE
     }
 
+    /** Carga la imagen en segundo plano; si falla se reintenta cada pocos segundos. */
+    private fun requestLoad() {
+        if (loading) return
+        loading = true
+        val u = uri; val v = videoFrame; val w = width.toInt(); val h = height.toInt(); val k = key
+        Thread {
+            val b = BitmapCache.get(ctx, u, v, w, h)
+            if (b != null) { loadedKey = k; loaded = b } else failedAt = android.os.SystemClock.uptimeMillis()
+            loading = false
+        }.start()
+    }
+
     override fun render(c: Canvas, t: Float, dt: Float) {
         val w = width; val h = height
+        if (bmp == null) {
+            val l = loaded
+            if (l != null && loadedKey == key) { bmp = l; loaded = null }
+            else if (uri != null && !loading && android.os.SystemClock.uptimeMillis() - failedAt > 4000) requestLoad()
+        }
         val b = bmp
         if (b == null) {
             placeholder?.frame(c, dt)
@@ -68,8 +91,17 @@ class PhotoScene(ctx: Context) : Scene(ctx) {
                 ip.reset(); ip.apply { moveTo(w / 2 - s * 0.8f, cy + s * 0.55f); lineTo(w / 2 - s * 0.2f, cy - s * 0.1f); lineTo(w / 2 + s * 0.15f, cy + s * 0.25f); lineTo(w / 2 + s * 0.4f, cy + s * 0.05f); lineTo(w / 2 + s * 0.8f, cy + s * 0.55f) }
                 c.drawPath(ip, iconP)
             }
-            c.drawText(if (videoFrame) "Elige un video" else "Elige una foto", w / 2, cy + s + dp(40f), textP)
-            c.drawText("Ábrelo desde la app DowPaper", w / 2, cy + s + dp(66f), sub)
+            if (uri == null || failedAt != 0L) {
+                val failed = uri != null
+                val title = when {
+                    failed && videoFrame -> "No se pudo leer el video"
+                    failed -> "No se pudo cargar la foto"
+                    videoFrame -> "Elige un video"
+                    else -> "Elige una foto"
+                }
+                c.drawText(title, w / 2, cy + s + dp(40f), textP)
+                c.drawText(if (failed) "Vuelve a elegirla en la app DowPaper" else "Ábrelo desde la app DowPaper", w / 2, cy + s + dp(66f), sub)
+            }
         } else {
             val zoom = 1.1f + 0.05f * sin(t * 0.07f)
             val sc = max(w / b.width, h / b.height) * zoom
@@ -103,10 +135,16 @@ object BitmapCache {
         if (uri == null) return null
         val target = max(w, h)
         val k = "$uri|$video|${target / 200}"
-        if (map.containsKey(k)) return map[k]
+        map[k]?.let { return it }
         val b = try { if (video) loadVideoFrame(ctx, uri, target) else loadImage(ctx, uri, target) } catch (e: Throwable) { null }
-        map[k] = b
+        if (b != null) map[k] = b   // los fallos no se guardan: se reintentará
         return b
+    }
+
+    @Synchronized
+    fun peek(uri: String?, video: Boolean, w: Int, h: Int): Bitmap? {
+        if (uri == null) return null
+        return map["$uri|$video|${max(w, h) / 200}"]
     }
 
     private fun loadImage(ctx: Context, uri: String, target: Int): Bitmap? {
