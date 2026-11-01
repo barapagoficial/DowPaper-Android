@@ -12,7 +12,7 @@ pesadas), así que el APK pesa **menos de 200 KB**, no necesita internet y no pi
 
 ## Descargar
 
-El APK firmado está en [`release/DowPaper-v1.0.0.apk`](release/DowPaper-v1.0.0.apk).
+El APK firmado está en [`release/DowPaper-v1.0.1.apk`](release/DowPaper-v1.0.1.apk).
 Cópialo al teléfono, ábrelo y permite *instalar apps de origen desconocido* si Android lo pide.
 Requiere **Android 8.0 (API 26) o superior**.
 
@@ -75,7 +75,7 @@ sudo apt install aapt apksigner zipalign dalvik-exchange openjdk-21-jdk
 # android.jar (API 35 para compilar, API 34 para enlazar recursos) y el compilador de Kotlin 2.0.21
 # en /opt/android-sdk/platforms/android-XX/ y /opt/kotlinc (rutas configurables por variables de entorno)
 ./build.sh
-# → build/DowPaper-v1.0.0.apk
+# → build/DowPaper-v1.0.1.apk
 ```
 
 ### Vista previa sin teléfono

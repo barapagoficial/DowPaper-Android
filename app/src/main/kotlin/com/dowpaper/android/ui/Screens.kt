@@ -283,6 +283,7 @@ class DetailScreen(act: MainActivity, private val def: SceneDef) : Screen(act) {
     private val swatches = ArrayList<PaletteSwatch>()
     private val hint = act.label("Toca y desliza la vista previa para interactuar", 12f, T.TEXT3).apply { gravity = Gravity.CENTER }
     private var controlsHidden = false
+    private var videoError: TextView? = null
     private val prefs = act.prefs
     override val view: View = root
 
@@ -465,13 +466,18 @@ class DetailScreen(act: MainActivity, private val def: SceneDef) : Screen(act) {
         val pick = GhostButton(act, if (prefs.videoUri == null) "Elegir video" else "Cambiar video", Ic.VIDEO)
         pick.setOnClickListener { act.pickMedia(true) }
         panel.addView(pick, llp(MATCH, dpi(52f), t = dpi(20f)))
+        val warn = act.label("", 13f, T.PINK)
+        warn.setLineSpacing(0f, 1.3f)
+        warn.visibility = View.GONE
+        videoError = warn
+        panel.addView(warn, llp(MATCH, WRAP, t = dpi(12f)))
         val note = act.label("Se reproduce en bucle, en silencio y con recorte automático a tu pantalla. Ideal: videos cortos verticales.", 13f, T.TEXT3)
         note.setLineSpacing(0f, 1.3f)
         panel.addView(note, llp(MATCH, WRAP, t = dpi(12f)))
     }
 
     override fun onPicked(video: Boolean, uri: Uri) {
-        if (video) prefs.videoUri = uri.toString() else { prefs.photoUri = uri.toString(); BitmapCache.invalidate() }
+        if (video) { prefs.videoError = null; prefs.videoUri = uri.toString(); updateVideoNote() } else { prefs.photoUri = uri.toString(); BitmapCache.invalidate() }
         for (i in 0 until panel.childCount) {
             val v = panel.getChildAt(i)
             if (v is GhostButton) v.label.text = if (video) "Cambiar video" else "Cambiar foto"
@@ -508,12 +514,21 @@ class DetailScreen(act: MainActivity, private val def: SceneDef) : Screen(act) {
     override fun onShow() {
         act.backdrop.paused = true
         sv.paused = false
-        video?.resume()
+        video?.let { if (it.visibility == View.VISIBLE) it.restart() }
+        updateVideoNote()
     }
 
+    // Se libera el reproductor (no solo se pausa) para dejar libre el decodificador al fondo real.
     override fun onHide() {
         sv.paused = true
-        video?.pause()
+        video?.release()
+    }
+
+    private fun updateVideoNote() {
+        val n = videoError ?: return
+        val err = prefs.videoError
+        n.visibility = if (err != null && act.activeService() != null) View.VISIBLE else View.GONE
+        n.text = "El fondo tuvo problemas para reproducir este video ($err). Si persiste, prueba con un video 1080p o más corto."
     }
 
     override fun onDestroy() {

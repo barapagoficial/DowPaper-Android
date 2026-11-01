@@ -55,6 +55,10 @@ class Prefs(ctx: Context) {
         get() = sp.getString("video_uri", null)
         set(v) = sp.edit().putString("video_uri", v).apply()
 
+    var videoError: String?
+        get() = sp.getString("video_err", null)
+        set(v) = sp.edit().putString("video_err", v).apply()
+
     val favorites: Set<String>
         get() = HashSet(sp.getStringSet("favs", emptySet()) ?: emptySet())
 

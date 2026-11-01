@@ -97,6 +97,11 @@ class MainActivity : Activity() {
     override fun onStart() { super.onStart(); SceneView.appVisible = true }
     override fun onStop() { SceneView.appVisible = false; super.onStop() }
 
+    override fun onPause() {
+        stack.lastOrNull()?.onHide()
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
         stack.lastOrNull()?.onShow()

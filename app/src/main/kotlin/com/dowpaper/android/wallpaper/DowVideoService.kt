@@ -1,8 +1,6 @@
 package com.dowpaper.android.wallpaper
 
 import android.content.SharedPreferences
-import android.graphics.Color
-import android.graphics.Paint
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Handler
@@ -13,7 +11,8 @@ import com.dowpaper.android.core.Prefs
 
 /**
  * Fondo de video. Es un servicio aparte porque un Surface que ya fue dibujado
- * con Canvas no puede ser reutilizado por MediaPlayer (y viceversa).
+ * con Canvas no puede ser reutilizado por MediaPlayer. Por la misma razón aquí
+ * NUNCA se dibuja con Canvas: si algo falla se reintenta, sin bloquear el Surface.
  */
 class DowVideoService : WallpaperService() {
 
@@ -23,10 +22,14 @@ class DowVideoService : WallpaperService() {
         private val prefs = Prefs(this@DowVideoService)
         private val handler = Handler(Looper.getMainLooper())
         private var player: MediaPlayer? = null
+        private var prepared = false
         private var visible = false
         private var hasSurface = false
-        private var loadedUri: String? = null
-        private var failed = false
+        private var attempts = 0
+        private var position = 0
+        private val retry = Runnable { start() }
+        // Liberar el decodificador cuando el fondo no se ve, para no competir con otros reproductores.
+        private val releaseIdle = Runnable { savePosition(); release() }
 
         override fun onCreate(surfaceHolder: SurfaceHolder) {
             super.onCreate(surfaceHolder)
@@ -35,81 +38,95 @@ class DowVideoService : WallpaperService() {
 
         override fun onDestroy() {
             prefs.sp.unregisterOnSharedPreferenceChangeListener(this)
-            release()
             handler.removeCallbacksAndMessages(null)
+            release()
             super.onDestroy()
         }
 
         override fun onSurfaceCreated(holder: SurfaceHolder) {
             super.onSurfaceCreated(holder)
             hasSurface = true
+            attempts = 0
             start()
         }
 
         override fun onSurfaceDestroyed(holder: SurfaceHolder) {
             hasSurface = false
+            handler.removeCallbacks(retry)
+            savePosition()
             release()
             super.onSurfaceDestroyed(holder)
         }
 
         override fun onVisibilityChanged(v: Boolean) {
             visible = v
-            val p = player
-            if (p == null) { if (v) start(); return }
-            try { if (v) p.start() else p.pause() } catch (e: Exception) {}
+            if (v) {
+                handler.removeCallbacks(releaseIdle)
+                val p = player
+                if (p == null) { attempts = 0; handler.removeCallbacks(retry); start() }
+                else if (prepared) try { p.start() } catch (e: Exception) {}
+            } else {
+                try { if (prepared) player?.pause() } catch (e: Exception) {}
+                handler.removeCallbacks(releaseIdle)
+                handler.postDelayed(releaseIdle, 2000)
+            }
         }
 
         override fun onSharedPreferenceChanged(sp: SharedPreferences?, key: String?) {
-            if (key == "video_uri") handler.post { if (prefs.videoUri != loadedUri) { failed = false; release(); start() } }
+            if (key == "video_uri") handler.post {
+                handler.removeCallbacks(retry)
+                release(); position = 0; attempts = 0; start()
+            }
+        }
+
+        private fun savePosition() {
+            try { if (prepared) player?.let { position = it.currentPosition } } catch (e: Exception) {}
         }
 
         private fun start() {
-            if (!hasSurface || player != null || failed) return
-            val uri = prefs.videoUri ?: run { drawMessage("Elige un video en la app DowPaper"); return }
+            if (!hasSurface || player != null) return
+            if (!visible && !isPreview && attempts == 0 && position > 0) return
+            val uri = prefs.videoUri ?: return
+            prepared = false
             try {
                 val mp = MediaPlayer()
+                player = mp
                 mp.setDataSource(applicationContext, Uri.parse(uri))
                 mp.setSurface(surfaceHolder.surface)
                 mp.isLooping = true
                 mp.setVolume(0f, 0f)
                 mp.setOnPreparedListener {
+                    prepared = true
+                    attempts = 0
+                    prefs.videoError = null
                     try { it.setVideoScalingMode(MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING) } catch (e: Exception) {}
+                    if (position > 0) try { it.seekTo(position) } catch (e: Exception) {}
                     if (visible || isPreview) it.start()
                 }
-                mp.setOnErrorListener { _, _, _ ->
-                    handler.post { failed = true; release(); drawMessage("No se pudo reproducir el video") }
+                mp.setOnErrorListener { _, what, extra ->
+                    handler.post { fail("código $what/$extra") }
                     true
                 }
                 mp.prepareAsync()
-                player = mp
-                loadedUri = uri
+            } catch (e: SecurityException) {
+                fail("sin permiso para leer el video")
             } catch (e: Exception) {
-                failed = true
-                release()
-                drawMessage("No se pudo abrir el video")
+                fail(e.javaClass.simpleName)
             }
+        }
+
+        private fun fail(reason: String) {
+            release()
+            attempts++
+            prefs.videoError = reason
+            // Reintentos con espera creciente: suele ser un decodificador ocupado por otra vista previa.
+            if (attempts <= 6) handler.postDelayed(retry, 700L * attempts)
         }
 
         private fun release() {
             player?.let { try { it.stop() } catch (e: Exception) {}; try { it.release() } catch (e: Exception) {} }
             player = null
-        }
-
-        /** Solo se usa si no hay video reproducible; después de esto el Surface queda para Canvas. */
-        private fun drawMessage(msg: String) {
-            if (!hasSurface) return
-            val h = surfaceHolder
-            val c = try { h.lockCanvas() } catch (e: Exception) { null } ?: return
-            try {
-                c.drawColor(0xFF07070D.toInt())
-                val p = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = Color.WHITE; textAlign = Paint.Align.CENTER
-                    textSize = 18f * resources.displayMetrics.density
-                }
-                c.drawText(msg, c.width / 2f, c.height / 2f, p)
-            } finally {
-                try { h.unlockCanvasAndPost(c) } catch (e: Exception) {}
-            }
+            prepared = false
         }
     }
 }

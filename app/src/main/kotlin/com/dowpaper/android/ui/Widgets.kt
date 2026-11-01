@@ -629,7 +629,7 @@ class VideoPreview(ctx: Context) : TextureView(ctx), TextureView.SurfaceTextureL
     override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean { release(); surface?.release(); surface = null; return true }
     override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
 
-    private fun restart() {
+    fun restart() {
         release()
         val s = surface ?: return
         val u = uri ?: return
