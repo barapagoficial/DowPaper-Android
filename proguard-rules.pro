@@ -1,0 +1,12 @@
+-dontoptimize
+-dontobfuscate
+-dontpreverify
+-dontwarn **
+-ignorewarnings
+-dontnote **
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Service
+-keep public class * extends android.service.wallpaper.WallpaperService
+-keep public class * extends android.view.View { public <init>(...); }
+-keep class com.dowpaper.android.R** { *; }
+-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }

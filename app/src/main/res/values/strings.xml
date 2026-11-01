@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DowPaper</string>
+    <string name="wallpaper_desc">Fondos de pantalla animados: auroras, cosmos, fluidos, olas y más. Personaliza colores, velocidad y densidad desde la app DowPaper.</string>
+    <string name="author">DowPaper</string>
+    <string name="video_label">DowPaper Video</string>
+    <string name="video_desc">Tu propio video como fondo de pantalla: en bucle, en silencio y recortado a tu pantalla. Elige el video desde la app DowPaper.</string>
+</resources>
